@@ -6,7 +6,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="voronoiMap" width="800" height="600"></canvas>
-    <script src="voronoiMap.js"></script>
+    <div class="sidebar">
+        <button>|</button>
+    </div>
+    <div class="main-content">
+        <canvas id="voronoiMap" width="800" height="600"></canvas>
+    </div>
+
+    <script type="module" src="rhill-voronoi-core.js"></script>
+    <script type="module" src="voronoiMap.js"></script>
+    <script>
+        const sidebar = document.querySelector('.sidebar');
+        const button = sidebar.querySelector('button');
+        document.querySelector('button').onclick = function () {
+            sidebar.classList.toggle('sidebar_small');
+            button.classList.toggle('button_collapsed');
+        }
+    </script>
 </body>
 </html>
