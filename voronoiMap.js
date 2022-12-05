@@ -31,17 +31,18 @@ function drawFiniteMap(canvas, ctx, seed, levels) {
 }
 
 function generateCanvasCell(canvas) {
-    let canvasCell = {
-        site: {x: canvas.width / 2, y: canvas.height / 2},
-        halfedges: [
-            {getStartpoint: () => {return {x: 0, y: 0};}, getEndpoint: () => {return {x: canvas.width, y: 0};}},
-            {getStartpoint: () => {return {x: canvas.width, y: 0};}, getEndpoint: () => {return {x: canvas.width, y: canvas.height};}},
-            {getStartpoint: () => {return {x: canvas.width, y: canvas.height};}, getEndpoint: () => {return {x: 0, y: canvas.height};}},
-            {getStartpoint: () => {return {x: 0, y: canvas.height};}, getEndpoint: () => {return {x: 0, y: 0};}}
-        ]
-    };
+    let cell = new Voronoi.prototype.Cell();
 
-    return [canvasCell];
+    cell.halfedges = [
+        {getStartpoint: function() {return {x: canvas.width, y: 0}}, getEndpoint: function() {return {x: 0, y: 0}}},
+        {getStartpoint: function() {return {x: 0, y: 0}}, getEndpoint: function() {return {x: 0, y: canvas.height}}},
+        {getStartpoint: function() {return {x: 0, y: canvas.height}}, getEndpoint: function() {return {x: canvas.width, y: canvas.height}}},
+        {getStartpoint: function() {return {x: canvas.width, y: canvas.height}}, getEndpoint: function() {return {x: canvas.width, y: 0}}}
+    ];
+
+    cell.site = {x: canvas.width / 2, y: canvas.height / 2};
+
+    return [cell];
 }
 
 function drawLevel(canvas, ctx, level, cells) {
@@ -60,7 +61,6 @@ function drawLevel(canvas, ctx, level, cells) {
             ctx.stroke();
         }
 
-        console.log(diagram.edges);
         for (let edge of diagram.edges) {
             if (edge.rSite == null) continue;
             let p1 = edge.va;
@@ -93,41 +93,21 @@ function generateSites(cell, nSites) {
 }
 
 function getBoundingBox(cell) {
-    let bbox = {
-        xl: Number.POSITIVE_INFINITY,
-        xr: Number.NEGATIVE_INFINITY,
-        yt: Number.POSITIVE_INFINITY,
-        yb: Number.NEGATIVE_INFINITY
-    };
+    let bbox = Voronoi.prototype.Cell.prototype.getBbox.call(cell);
 
-    for (let halfedge of cell.halfedges) {
-        let p1 = halfedge.getStartpoint();
-        let p2 = halfedge.getEndpoint();
-        bbox.xl = Math.min(bbox.xl, p1.x, p2.x);
-        bbox.xr = Math.max(bbox.xr, p1.x, p2.x);
-        bbox.yt = Math.min(bbox.yt, p1.y, p2.y);
-        bbox.yb = Math.max(bbox.yb, p1.y, p2.y);
+    return {
+        xl: bbox.x,
+        xr: bbox.x + bbox.width,
+        yt: bbox.y,
+        yb: bbox.y + bbox.height
     }
-
-    return bbox;
 }
 
 function isInsideCell(point, cell, includeEdges=true){
-    let halfedges = cell.halfedges;
-    let nHalfedges = halfedges.length;
-    let inside = false;
-    for (let i = 0; i < nHalfedges; i++) {
-        let p1 = halfedges[i].getStartpoint();
-        let p2 = halfedges[i].getEndpoint();
-        if (includeEdges && isOnEdge(point, p1, p2)) {
-            return true;
-        }
-        if ((p1.y > point.y) != (p2.y > point.y) &&
-            point.x < (p2.x - p1.x) * (point.y - p1.y) / (p2.y - p1.y) + p1.x) {
-            inside = !inside;
-        }
-    }
-    return inside;
+    let res = cell.__proto__.pointIntersection.call(cell, point.x, point.y);
+    if (res == 1) return true;
+    if (res == 0 && includeEdges) return true;
+    return false;
 }
 
 function isOnEdge(point, p1, p2) {
@@ -140,6 +120,7 @@ function isOnEdge(point, p1, p2) {
 }
 
 function test() {
+
     let levels = [new StreetLevel(10), new StreetLevel(5, "blue")];
     drawFiniteMap(canvas, ctx, 0, levels);
 }
