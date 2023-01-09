@@ -13,15 +13,19 @@ let ctx = canvas.getContext("2d");
 let voronoi = new Voronoi();
 
 import Voronoi from "./rhill-voronoi-core.js";
+import {seed, random} from "./random.js";
 
 class StreetLevel {
-    constructor(nSites, lineColor="black") {
+    constructor(nSites, lineColor="black", lineWidth=1) {
         this.nSites = nSites;
         this.lineColor = lineColor;
+        this.lineWidth = lineWidth;
     }
 }
 
-function drawFiniteMap(canvas, ctx, seed, levels) {
+function drawFiniteMap(canvas, ctx, seedValue, levels) {
+    seed(seedValue);
+
     let accumulatedCells = generateCanvasCell(canvas);
 
     for (let level of levels) {
@@ -47,12 +51,22 @@ function generateCanvasCell(canvas) {
 
 function drawLevel(canvas, ctx, level, cells) {
     let newCells = [];
-    ctx.strokeStyle = level.lineColor;
+
+    if (level.lineColor != "random")
+        ctx.strokeStyle = level.lineColor;
+
     for (let cell of cells) {
+
+        if (level.lineColor == "random")
+            ctx.strokeStyle = "#"+Math.floor(random()*16777215).toString(16);
+        ctx.lineWidth = 1;
+
         let sites = generateSites(cell, level.nSites);
 
         let bbox = getBoundingBox(cell);
         let diagram = voronoi.compute(sites, bbox);
+
+
         newCells = newCells.concat(diagram.cells);
 
         for (let site of sites) {
@@ -61,8 +75,9 @@ function drawLevel(canvas, ctx, level, cells) {
             ctx.stroke();
         }
 
+        ctx.lineWidth = level.lineWidth;
         for (let edge of diagram.edges) {
-            if (edge.rSite == null) continue;
+            // if (edge.rSite == null) continue;
             let p1 = edge.va;
             let p2 = edge.vb;
             if (p1 && p2) {
@@ -83,8 +98,8 @@ function generateSites(cell, nSites) {
         let bbox = getBoundingBox(cell);
         let x, y;
         do {
-            x = Math.random() * (bbox.xr - bbox.xl) + bbox.xl;
-            y = Math.random() * (bbox.yb - bbox.yt) + bbox.yt;
+            x = random() * (bbox.xr - bbox.xl) + bbox.xl;
+            y = random() * (bbox.yb - bbox.yt) + bbox.yt;
         } while (!isInsideCell({x: x, y: y}, cell));
         let site = {x: x, y: y};
         sites.push(site);
@@ -119,10 +134,10 @@ function isOnEdge(point, p1, p2) {
     return (d1 + d2) == d;
 }
 
-function test() {
 
-    let levels = [new StreetLevel(10), new StreetLevel(5, "blue")];
-    drawFiniteMap(canvas, ctx, 0, levels);
-}
+let seedValue = Date.now();
+let levels = [new StreetLevel(14, "black", 6), new StreetLevel(4, "random", 2)];
+drawFiniteMap(canvas, ctx, seedValue, levels);
 
-test()
+
+window.addEventListener("resize", () => drawFiniteMap(canvas, ctx, seedValue, levels));

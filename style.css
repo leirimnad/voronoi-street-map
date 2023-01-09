@@ -89,3 +89,33 @@ html, body {
     width: 20px;
     opacity: 1;
 }
+
+.pointCircle {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    background: rgb(255,255,255);
+    background: radial-gradient(circle, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 20%, rgba(255,244,5,1) 41%, rgba(255,244,5,1) 58%, rgba(255,255,255,0) 72%, rgba(255,255,255,0) 100%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    display: none;
+}
+
+.pointCircle.animated {
+    display: block;
+    animation: pointCircle 1s 1;
+}
+
+@keyframes pointCircle {
+    0% {
+        width: 30vh;
+        height: 30vh;
+    }
+    100% {
+        width: 0;
+        height: 0;
+        display: none;
+    }
+}
