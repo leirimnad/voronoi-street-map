@@ -10,6 +10,7 @@ canvas.height = document.body.clientHeight;
 window.addEventListener("resize", function() {
     canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
+    drawFiniteMap(canvas, ctx, seedValue, levels);
 });
 
 let ctx = canvas.getContext("2d");
@@ -22,10 +23,64 @@ class StreetLevel {
     }
 }
 
+class Cell {
+    constructor(site, polygon, children=[]) {
+        this.site = site;
+        this.polygon = polygon;
+        this.children = children;
+    }
+
+    addChildren(children) {
+        this.children.push(children);
+    }
+
+    getBoundingBox() {
+        let xs = this.polygon.map(p => p[0]);
+        let ys = this.polygon.map(p => p[1]);
+        return [
+            Math.min(...xs),
+            Math.min(...ys),
+            Math.max(...xs),
+            Math.max(...ys)
+        ];
+    }
+
+    containsPoint(point, includeEdges=true) {
+        let correctSide = null;
+        let nVertices = this.polygon.length;
+        for (let i = 0; i < nVertices - 1; i++) {
+            let p1 = this.polygon[i];
+            let p2 = this.polygon[i + 1];
+            if (p1[0] === p2[0] && p1[1] === p2[1])
+                continue;
+            let edgeVector = [p2[0] - p1[0], p2[1] - p1[1]];
+            let pointVector = [point[0] - p1[0], point[1] - p1[1]];
+            let side = Math.sign(edgeVector[0] * pointVector[1] - edgeVector[1] * pointVector[0]);
+            if (side === 0)
+                return includeEdges && isOnEdge(point, p1, p2);
+            if (correctSide == null)
+                correctSide = side;
+            if (side !== correctSide)
+                return false;
+        }
+        return true;
+    }
+}
+
 function drawFiniteMap(canvas, ctx, seedValue, levels) {
     seed(seedValue);
 
-    let accumulatedCells = [[[0,0], [canvas.width, 0], [canvas.width, canvas.height] , [0, canvas.height]]];
+    let accumulatedCells = [
+        new Cell(
+            [canvas.width / 2, canvas.height / 2],
+            [
+                [0, 0],
+                [canvas.width, 0],
+                [canvas.width, canvas.height] ,
+                [0, canvas.height]
+            ]
+        )
+    ];
 
     for (let level of levels) {
         accumulatedCells = drawLevel(canvas, ctx, level, accumulatedCells);
@@ -46,9 +101,10 @@ function drawLevel(canvas, ctx, level, cells) {
 
         let sites = generateSites(cell, level.nSites);
         let delaunay = Delaunay.from(sites)
-        let voronoi = delaunay.voronoi(getBoundingBox(cell));
+        let voronoi = delaunay.voronoi(cell.getBoundingBox());
 
-        let generatedCells = [...voronoi.cellPolygons()];
+        let generatedPolygons = [...voronoi.cellPolygons()];
+        let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon));
         newCells = newCells.concat(generatedCells);
 
         for (let site of sites) {
@@ -58,7 +114,7 @@ function drawLevel(canvas, ctx, level, cells) {
         }
 
         ctx.lineWidth = level.lineWidth;
-        for (let cell of generatedCells) {
+        for (let cell of generatedPolygons) {
             ctx.beginPath();
             ctx.moveTo(cell[0][0], cell[0][1]);
             for (let i = 1; i < cell.length; i++) {
@@ -75,45 +131,15 @@ function drawLevel(canvas, ctx, level, cells) {
 function generateSites(cell, nSites) {
     let sites = [];
     for (let i = 0; i < nSites; i++) {
-        let bbox = getBoundingBox(cell);
+        let bbox = cell.getBoundingBox();
         let x, y;
         do {
             x = Math.round(random() * (bbox[2] - bbox[0]) + bbox[0]);
             y = Math.round(random() * (bbox[3] - bbox[1]) + bbox[1]);
-        } while (!isInsidePolygon([x, y], cell, false) && random() < 0.99);
+        } while (!cell.containsPoint([x, y], false));
         sites.push([x, y]);
     }
     return sites;
-}
-
-function getBoundingBox(cell) {
-    let xs = cell.map(p => p[0]);
-    let ys = cell.map(p => p[1]);
-    return [Math.min(...xs),
-            Math.min(...ys),
-            Math.max(...xs),
-            Math.max(...ys)]
-}
-
-function isInsidePolygon(point, polygon, includeEdges=true) {
-    let correctSide = null;
-    let nVertices = polygon.length;
-    for (let i = 0; i < nVertices - 1; i++) {
-        let p1 = polygon[i];
-        let p2 = polygon[i + 1];
-        if (p1[0] === p2[0] && p1[1] === p2[1])
-            continue;
-        let edgeVector = [p2[0] - p1[0], p2[1] - p1[1]];
-        let pointVector = [point[0] - p1[0], point[1] - p1[1]];
-        let side = Math.sign(edgeVector[0] * pointVector[1] - edgeVector[1] * pointVector[0]);
-        if (side === 0)
-            return includeEdges && isOnEdge(point, p1, p2);
-        if (correctSide == null)
-            correctSide = side;
-        if (side !== correctSide)
-            return false;
-    }
-    return true;
 }
 
 function isOnEdge(p, p1, p2) {
@@ -127,8 +153,9 @@ function isOnEdge(p, p1, p2) {
 
 
 let seedValue = Date.now();
-let levels = [new StreetLevel(14, "black", 6), new StreetLevel(8, "random", 2)];
+let levels = [
+    new StreetLevel(14, "black", 6),
+    new StreetLevel(8, "random", 2)
+];
+
 drawFiniteMap(canvas, ctx, seedValue, levels);
-
-
-window.addEventListener("resize", () => drawFiniteMap(canvas, ctx, seedValue, levels));
