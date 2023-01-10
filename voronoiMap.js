@@ -7,31 +7,28 @@ let canvas = document.getElementById("voronoiMap");
 canvas.width = document.body.clientWidth;
 canvas.height = document.body.clientHeight;
 
-window.addEventListener("resize", function() {
-    canvas.width = document.body.clientWidth;
-    canvas.height = document.body.clientHeight;
-    drawFiniteMap(canvas, ctx, seedValue, levels);
-});
+
 
 let ctx = canvas.getContext("2d");
 
 class StreetLevel {
-    constructor(nSites, lineColor="black", lineWidth=1) {
+    constructor(nSites, cellStyle) {
         this.nSites = nSites;
-        this.lineColor = lineColor;
-        this.lineWidth = lineWidth;
+        this.cellStyle = cellStyle;
     }
 }
 
 class Cell {
-    constructor(site, polygon, children=[]) {
+    constructor(site, polygon, cellStyle, parent=null, children=[]) {
         this.site = site;
         this.polygon = polygon;
+        this.parent = parent;
         this.children = children;
+        this.cellStyle = cellStyle;
     }
 
     addChildren(children) {
-        this.children.push(children);
+        this.children = this.children.concat(children);
     }
 
     getBoundingBox() {
@@ -128,10 +125,35 @@ class Cell {
         }
 
         this.polygon = result;
-        this.polygon.push(result[0]);
+        if (this.polygon[this.polygon.length - 1][0] !== this.polygon[0][0] || this.polygon[this.polygon.length - 1][1] !== this.polygon[0][1])
+            this.polygon.push(result[0]);
     }
 }
 
+class CellStyle {
+    constructor(strokeColor, lineWidth=1) {
+        this._strokeColor = strokeColor;
+        this.lineWidth = lineWidth;
+    }
+
+    withLineWidth(lineWidth) {
+        return new CellStyle(this._strokeColor, lineWidth);
+    }
+
+    get strokeColor(){
+        if (this._strokeColor === "random")
+            this._strokeColor = "#"+Math.floor(random()*16777215).toString(16);
+        return this._strokeColor;
+    }
+
+    static get random() {
+        return new CellStyle("random");
+    }
+
+    static get black() {
+        return new CellStyle("#000000");
+    }
+}
 
 
 let canvasCell = new Cell(
@@ -142,60 +164,70 @@ let canvasCell = new Cell(
         [canvas.width, canvas.height] ,
         [0, canvas.height],
         [0, 0]
-    ]
+    ],
+    new CellStyle("#FFFF", 0)
 )
 
-function drawFiniteMap(canvas, ctx, seedValue, levels) {
+function generateFiniteMap(seedValue, levels){
+    console.log("Generating map with seed", seedValue)
     seed(seedValue);
 
     let accumulatedCells = [
         canvasCell
     ];
 
+    let generatedLevels = [];
+
     for (let level of levels) {
-        accumulatedCells = drawLevel(canvas, ctx, level, accumulatedCells);
+        console.log("Generating level", level);
+        accumulatedCells = generateLevel(level, accumulatedCells);
+        generatedLevels.push(accumulatedCells);
     }
+
+    return generatedLevels;
 }
 
-function drawLevel(canvas, ctx, level, cells) {
+function generateLevel(level, cells){
     let newCells = [];
 
-    if (level.lineColor !== "random")
-        ctx.strokeStyle = level.lineColor;
-
     for (let cell of cells) {
-
-        if (level.lineColor === "random")
-            ctx.strokeStyle = "#"+Math.floor(random()*16777215).toString(16);
-        ctx.lineWidth = 1;
-
         let sites = generateSites(cell, level.nSites);
         let delaunay = Delaunay.from(sites)
         let voronoi = delaunay.voronoi(cell.getBoundingBox());
 
         let generatedPolygons = [...voronoi.cellPolygons()];
-        let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon));
+        let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon, level.cellStyle, cell));
         for (let generatedCell of generatedCells) {
             generatedCell.clip(cell);
         }
         newCells = newCells.concat(generatedCells);
         cell.addChildren(generatedCells);
-
-        ctx.lineWidth = level.lineWidth;
-        for (let cell of generatedCells) {
-            let polygon = cell.polygon;
-            // console.log(cell, polygon);
-            ctx.beginPath();
-            ctx.moveTo(polygon[0][0], polygon[0][1]);
-            for (let i = 1; i < polygon.length; i++) {
-                ctx.lineTo(polygon[i][0], polygon[i][1]);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
     }
 
     return newCells;
+}
+
+function drawFiniteMap(ctx, map) {
+    console.log("Drawing map");
+    for (let level of [...map].reverse()) {
+        for (let cell of level) {
+            drawCell(ctx, cell);
+        }
+    }
+}
+
+function drawCell(ctx, cell) {
+    ctx.lineWidth = cell.cellStyle.lineWidth;
+    ctx.strokeStyle = cell.cellStyle.strokeColor;
+
+    let polygon = cell.polygon;
+    ctx.beginPath();
+    ctx.moveTo(polygon[0][0], polygon[0][1]);
+    for (let i = 1; i < polygon.length; i++) {
+        ctx.lineTo(polygon[i][0], polygon[i][1]);
+    }
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function generateSites(cell, nSites) {
@@ -203,10 +235,17 @@ function generateSites(cell, nSites) {
     for (let i = 0; i < nSites; i++) {
         let bbox = cell.getBoundingBox();
         let x, y;
+        let tries = 0;
         do {
-            x = Math.round(random() * (bbox[2] - bbox[0]) + bbox[0]);
-            y = Math.round(random() * (bbox[3] - bbox[1]) + bbox[1]);
-        } while (!cell.containsPoint([x, y], false));
+            x = random() * (bbox[2] - bbox[0]) + bbox[0];
+            y = random() * (bbox[3] - bbox[1]) + bbox[1];
+            tries++;
+        } while (!cell.containsPoint([x, y], false) && tries < 1000);
+
+        if (tries === 100){
+            console.warn("Could not find a site in cell", cell);
+        }
+
         sites.push([x, y]);
     }
     return sites;
@@ -227,10 +266,20 @@ function round(num, places) {
 
 
 let seedValue = Date.now();
+
 let levels = [
-    new StreetLevel(17, "black", 6),
-    new StreetLevel(8, "random", 2),
-    new StreetLevel(8, "random", 2)
+    new StreetLevel(10, CellStyle.black.withLineWidth(8)),
+    new StreetLevel(8, CellStyle.random.withLineWidth(4)),
+    new StreetLevel(6, CellStyle.random.withLineWidth(2)),
+    new StreetLevel(14, CellStyle.random),
+    new StreetLevel(2, CellStyle.random)
 ];
 
-drawFiniteMap(canvas, ctx, seedValue, levels);
+let map = generateFiniteMap(seedValue, levels);
+console.log(map);
+drawFiniteMap(ctx, map);
+window.addEventListener("resize", function() {
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
+    drawFiniteMap(ctx, map);
+});
