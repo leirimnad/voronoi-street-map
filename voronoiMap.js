@@ -16,6 +16,10 @@ class StreetLevel {
         this.nSites = nSites;
         this.cellStyle = cellStyle;
     }
+
+    asHTML() {
+        return `${this.nSites} sites, <span style="color: ${this.cellStyle.strokeColor}">${"|".repeat(this.cellStyle.lineWidth)}</span>`;
+    }
 }
 
 class Cell {
@@ -166,6 +170,10 @@ function generateFiniteMap(seedValue, levels){
     console.log("Generating map with seed", seedValue.toString())
     let seededRandom = seededRand(seedValue);
 
+    if (levels === undefined){
+        levels = generateLevels(seededRand(seededRandom()), 3, 5, 4, 10)
+    }
+
     let accumulatedCells = [
         canvasCell
     ];
@@ -178,7 +186,23 @@ function generateFiniteMap(seedValue, levels){
         generatedLevels.push(accumulatedCells);
     }
 
+    updateLevelList(levels);
+
     return generatedLevels;
+}
+
+function generateLevels(randomFunction, minN, maxN, minSites, maxSites) {
+    let levelsN = minN + Math.floor(randomFunction() * (maxN - minN + 1));
+    let levels = [];
+    for (let i = 0; i < levelsN; i++) {
+        levels.push(
+            new StreetLevel(
+                minSites + Math.floor(randomFunction() * (maxSites - minSites + 1)),
+                new CellStyle("#000000", (levelsN-i)*2-1)
+            )
+        );
+    }
+    return levels;
 }
 
 function generateLevel(level, cells, randomFunction){
@@ -261,15 +285,7 @@ function round(num, places) {
 
 let seedValue = Date.now();
 
-let levels = [
-    new StreetLevel(10, CellStyle.black.withLineWidth(8)),
-    new StreetLevel(8, new CellStyle("#1a1a1a", 6)),
-    new StreetLevel(6, new CellStyle("#2c2c2c", 4)),
-    new StreetLevel(14, new CellStyle("#3d3d3d", 2)),
-    new StreetLevel(2, new CellStyle("#545454", 1))
-];
-
-let map = generateFiniteMap(seedValue, levels);
+let map = generateFiniteMap(seedValue);
 console.log(map);
 drawFiniteMap(ctx, map);
 window.addEventListener("resize", function() {
@@ -284,13 +300,24 @@ const setSeedButton = document.querySelector('#set-seed-button');
 
 setSeedButton.addEventListener("click", function() {
     seedValue = seedInput.value;
-    map = generateFiniteMap(seedValue, levels);
+    map = generateFiniteMap(seedValue);
     drawFiniteMap(ctx, map);
 });
 
 randomSeedButton.addEventListener("click", function() {
     seedValue = randomWord() + Math.floor(Math.random() * 1000).toString();
     seedInput.value = seedValue;
-    map = generateFiniteMap(seedValue, levels);
+    map = generateFiniteMap(seedValue);
     drawFiniteMap(ctx, map);
 });
+
+function updateLevelList(levels) {
+    let levelsDiv = document.getElementById("levels-list");
+    levelsDiv.innerHTML = "";
+    for (let level of levels) {
+        let levelElem = document.createElement("li");
+        levelElem.classList.add("list-group-item");
+        levelElem.innerHTML = level.asHTML();
+        levelsDiv.appendChild(levelElem);
+    }
+}

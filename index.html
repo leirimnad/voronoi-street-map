@@ -45,12 +45,7 @@
 
             <div class="setting">
                 <h3>Levels:</h3>
-                <ul id="sortlist" class="list-group">
-                    <li class="list-group-item">First</li>
-                    <li class="list-group-item">Second</li>
-                    <li class="list-group-item">Third</li>
-                    <li class="list-group-item">Fourth</li>
-                    <li class="list-group-item">Fifth</li>
+                <ul id="levels-list" class="list-group">
                 </ul>
                 <button class="slist-li slist-add">
                     Add
@@ -79,7 +74,7 @@
     <script src="dndList.js"></script>
     <script>
         window.addEventListener("DOMContentLoaded", () => {
-            slist(document.getElementById("sortlist"));
+            slist(document.getElementById("levels-list"));
         });
 
         const pointCircleBase = document.querySelector('#pointCircle');
