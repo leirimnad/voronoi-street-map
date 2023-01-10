@@ -65,21 +65,91 @@ class Cell {
         }
         return true;
     }
+
+    static getEdges(polygon){
+        let edges = [];
+        for (let i = 0; i < polygon.length - 1; i++) {
+            edges.push([polygon[i], polygon[i + 1]]);
+        }
+        return edges;
+    }
+
+    clip (clipCell) {
+        let subjectPolygon = this.polygon.slice(0, -1);
+        let clipPolygon = clipCell.polygon.slice(0, -1);
+
+        // From https://rosettacode.org/wiki/Sutherland-Hodgman_polygon_clipping#JavaScript
+        let cp1, cp2, s, e;
+        const inside = function (p) {
+            return (cp2[0] - cp1[0]) * (p[1] - cp1[1]) > (cp2[1] - cp1[1]) * (p[0] - cp1[0]);
+        };
+        const intersection = function () {
+            const dc = [cp1[0] - cp2[0], cp1[1] - cp2[1]],
+                dp = [s[0] - e[0], s[1] - e[1]],
+                n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0],
+                n2 = s[0] * e[1] - s[1] * e[0],
+                n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0]);
+            return [round((n1 * dp[0] - n2 * dc[0]) * n3, 4), round((n1 * dp[1] - n2 * dc[1]) * n3, 4)];
+        };
+        let outputList = subjectPolygon;
+        cp1 = clipPolygon[clipPolygon.length-1];
+        for (const j in clipPolygon) {
+            cp2 = clipPolygon[j];
+            const inputList = outputList;
+            outputList = [];
+            s = inputList[inputList.length - 1];
+            for (const i in inputList) {
+                e = inputList[i];
+                if (inside(e)) {
+                    if (!inside(s)) {
+                        outputList.push(intersection());
+                    }
+                    outputList.push(e);
+                }
+                else if (inside(s)) {
+                    outputList.push(intersection());
+                }
+                s = e;
+            }
+            cp1 = cp2;
+        }
+
+        if (outputList.length < 3){
+            console.warn("outputList.length < 3");
+            console.log(outputList);
+            console.log("subjectPolygon", subjectPolygon);
+            console.log("clipPolygon", clipPolygon);
+        }
+
+        let result = [];
+        for (let i = 0; i < outputList.length; i++) {
+            if (result.length === 0 || result[result.length - 1][0] !== outputList[i][0] || result[result.length - 1][1] !== outputList[i][1])
+                result.push(outputList[i]);
+        }
+
+        this.polygon = result;
+        this.polygon.push(result[0]);
+    }
 }
+
+
+
+let canvasCell = new Cell(
+    [canvas.width / 2, canvas.height / 2],
+    [
+        [0, 0],
+        [canvas.width, 0],
+        [canvas.width, canvas.height] ,
+        [0, canvas.height],
+        [0, 0]
+    ]
+)
 
 function drawFiniteMap(canvas, ctx, seedValue, levels) {
     seed(seedValue);
 
     let accumulatedCells = [
-        new Cell(
-            [canvas.width / 2, canvas.height / 2],
-            [
-                [0, 0],
-                [canvas.width, 0],
-                [canvas.width, canvas.height] ,
-                [0, canvas.height]
-            ]
-        )
+        canvasCell
     ];
 
     for (let level of levels) {
@@ -105,20 +175,20 @@ function drawLevel(canvas, ctx, level, cells) {
 
         let generatedPolygons = [...voronoi.cellPolygons()];
         let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon));
-        newCells = newCells.concat(generatedCells);
-
-        for (let site of sites) {
-            ctx.beginPath();
-            ctx.arc(site[0], site[1], 2, 0, 2 * Math.PI);
-            ctx.stroke();
+        for (let generatedCell of generatedCells) {
+            generatedCell.clip(cell);
         }
+        newCells = newCells.concat(generatedCells);
+        cell.addChildren(generatedCells);
 
         ctx.lineWidth = level.lineWidth;
-        for (let cell of generatedPolygons) {
+        for (let cell of generatedCells) {
+            let polygon = cell.polygon;
+            // console.log(cell, polygon);
             ctx.beginPath();
-            ctx.moveTo(cell[0][0], cell[0][1]);
-            for (let i = 1; i < cell.length; i++) {
-                ctx.lineTo(cell[i][0], cell[i][1]);
+            ctx.moveTo(polygon[0][0], polygon[0][1]);
+            for (let i = 1; i < polygon.length; i++) {
+                ctx.lineTo(polygon[i][0], polygon[i][1]);
             }
             ctx.closePath();
             ctx.stroke();
@@ -151,10 +221,15 @@ function isOnEdge(p, p1, p2) {
     return (d1 + d2) === d;
 }
 
+function round(num, places) {
+    return Math.round((num + Number.EPSILON) * Math.pow(10, places)) / Math.pow(10, places);
+}
+
 
 let seedValue = Date.now();
 let levels = [
-    new StreetLevel(14, "black", 6),
+    new StreetLevel(17, "black", 6),
+    new StreetLevel(8, "random", 2),
     new StreetLevel(8, "random", 2)
 ];
 
