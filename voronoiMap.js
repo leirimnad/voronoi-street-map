@@ -1,6 +1,6 @@
 "use strict";
 
-import {random, seed} from "./random.js";
+import {randomWord, seededRand} from "./random.js";
 import {Delaunay} from "https://cdn.skypack.dev/d3-delaunay@6";
 
 let canvas = document.getElementById("voronoiMap");
@@ -141,13 +141,7 @@ class CellStyle {
     }
 
     get strokeColor(){
-        if (this._strokeColor === "random")
-            this._strokeColor = "#"+Math.floor(random()*16777215).toString(16);
         return this._strokeColor;
-    }
-
-    static get random() {
-        return new CellStyle("random");
     }
 
     static get black() {
@@ -169,8 +163,8 @@ let canvasCell = new Cell(
 )
 
 function generateFiniteMap(seedValue, levels){
-    console.log("Generating map with seed", seedValue)
-    seed(seedValue);
+    console.log("Generating map with seed", seedValue.toString())
+    let seededRandom = seededRand(seedValue);
 
     let accumulatedCells = [
         canvasCell
@@ -180,18 +174,18 @@ function generateFiniteMap(seedValue, levels){
 
     for (let level of levels) {
         console.log("Generating level", level);
-        accumulatedCells = generateLevel(level, accumulatedCells);
+        accumulatedCells = generateLevel(level, accumulatedCells, seededRand(seededRandom()));
         generatedLevels.push(accumulatedCells);
     }
 
     return generatedLevels;
 }
 
-function generateLevel(level, cells){
+function generateLevel(level, cells, randomFunction){
     let newCells = [];
 
     for (let cell of cells) {
-        let sites = generateSites(cell, level.nSites);
+        let sites = generateSites(cell, level.nSites, randomFunction);
         let delaunay = Delaunay.from(sites)
         let voronoi = delaunay.voronoi(cell.getBoundingBox());
 
@@ -207,8 +201,29 @@ function generateLevel(level, cells){
     return newCells;
 }
 
+function generateSites(cell, nSites, randomFunction) {
+    let sites = [];
+    for (let i = 0; i < nSites; i++) {
+        let bbox = cell.getBoundingBox();
+        let x, y;
+        let tries = 0;
+        do {
+            x = randomFunction() * (bbox[2] - bbox[0]) + bbox[0];
+            y = randomFunction() * (bbox[3] - bbox[1]) + bbox[1];
+            tries++;
+        } while (!cell.containsPoint([x, y], false) && tries < 1000);
+
+        if (tries === 100){
+            console.warn("Could not find a site in cell", cell);
+        }
+
+        sites.push([x, y]);
+    }
+    return sites;
+}
+
 function drawFiniteMap(ctx, map) {
-    console.log("Drawing map");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let level of [...map].reverse()) {
         for (let cell of level) {
             drawCell(ctx, cell);
@@ -230,27 +245,6 @@ function drawCell(ctx, cell) {
     ctx.stroke();
 }
 
-function generateSites(cell, nSites) {
-    let sites = [];
-    for (let i = 0; i < nSites; i++) {
-        let bbox = cell.getBoundingBox();
-        let x, y;
-        let tries = 0;
-        do {
-            x = random() * (bbox[2] - bbox[0]) + bbox[0];
-            y = random() * (bbox[3] - bbox[1]) + bbox[1];
-            tries++;
-        } while (!cell.containsPoint([x, y], false) && tries < 1000);
-
-        if (tries === 100){
-            console.warn("Could not find a site in cell", cell);
-        }
-
-        sites.push([x, y]);
-    }
-    return sites;
-}
-
 function isOnEdge(p, p1, p2) {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
@@ -269,10 +263,10 @@ let seedValue = Date.now();
 
 let levels = [
     new StreetLevel(10, CellStyle.black.withLineWidth(8)),
-    new StreetLevel(8, CellStyle.random.withLineWidth(4)),
-    new StreetLevel(6, CellStyle.random.withLineWidth(2)),
-    new StreetLevel(14, CellStyle.random),
-    new StreetLevel(2, CellStyle.random)
+    new StreetLevel(8, new CellStyle("#1a1a1a", 6)),
+    new StreetLevel(6, new CellStyle("#2c2c2c", 4)),
+    new StreetLevel(14, new CellStyle("#3d3d3d", 2)),
+    new StreetLevel(2, new CellStyle("#545454", 1))
 ];
 
 let map = generateFiniteMap(seedValue, levels);
@@ -281,5 +275,22 @@ drawFiniteMap(ctx, map);
 window.addEventListener("resize", function() {
     canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
+    drawFiniteMap(ctx, map);
+});
+
+const seedInput = document.querySelector('#seed-input');
+const randomSeedButton = document.querySelector('#random-seed-button');
+const setSeedButton = document.querySelector('#set-seed-button');
+
+setSeedButton.addEventListener("click", function() {
+    seedValue = seedInput.value;
+    map = generateFiniteMap(seedValue, levels);
+    drawFiniteMap(ctx, map);
+});
+
+randomSeedButton.addEventListener("click", function() {
+    seedValue = randomWord() + Math.floor(Math.random() * 1000).toString();
+    seedInput.value = seedValue;
+    map = generateFiniteMap(seedValue, levels);
     drawFiniteMap(ctx, map);
 });
