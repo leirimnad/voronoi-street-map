@@ -1,6 +1,6 @@
 "use strict";
 
-import {randomWord, seededRand} from "./random.js";
+import {randomWord, seededRand, uuid} from "./random.js";
 import {Delaunay} from "https://cdn.skypack.dev/d3-delaunay@6";
 
 let canvas = document.getElementById("voronoiMap");
@@ -15,10 +15,52 @@ class StreetLevel {
     constructor(nSites, cellStyle) {
         this.nSites = nSites;
         this.cellStyle = cellStyle;
+        this.id = uuid();
     }
 
     asHTML() {
-        return `${this.nSites} sites, <span style="color: ${this.cellStyle.strokeColor}">${"|".repeat(this.cellStyle.lineWidth)}</span>`;
+
+        let sliderMin = 0;
+        let sliderMax = 10;
+        let sliderValue = this.cellStyle.lineWidth;
+        let sliderPercent = (sliderValue-sliderMin)/(sliderMax-sliderMin)*100;
+        let html = `
+                <div style="width: 4rem; display: inline-block">
+                    <input type="number" min="1" max="10" id="level-sites-${this.id}" class="form-control" value="${this.nSites}"/>
+                </div>
+                site${(this.nSites > 1 ? "s" : "")}, 
+                <input class="line-width-slider" id="line-width-${this.id}"
+                style="
+                    --color: ${this.cellStyle.strokeColor}; 
+                    --color-tr: ${this.cellStyle.strokeColor}BB;
+                    background: linear-gradient(to right, var(--color-tr) 0%, var(--color-tr) ${sliderPercent}%, #fff ${sliderPercent}%, white 100%)
+                    "
+                min="${sliderMin}" max="${sliderMax}" type="range" value="${sliderValue}"/>
+            `;
+
+        return {
+            html: html,
+            events: [
+                {
+                    selector: `#level-sites-${this.id}`,
+                    event: "change",
+                    handler: () => {
+
+                    }
+                },
+                {
+                    selector: `#line-width-${this.id}`,
+                    event: "input",
+                    handler: (e) => {
+                        // this.cellStyle.lineWidth = e.target.value;
+                        // this.draw();
+                        let value = (e.target.value-e.target.min)/(e.target.max-e.target.min)*100;
+                        e.target.style.background = 'linear-gradient(to right, var(--color-tr) 0%, var(--color-tr) ' + value + '%, #fff ' + value + '%, white 100%)'
+                    }
+                }
+            ],
+            id: this.id
+        };
     }
 }
 
@@ -317,7 +359,11 @@ function updateLevelList(levels) {
     for (let level of levels) {
         let levelElem = document.createElement("li");
         levelElem.classList.add("list-group-item");
-        levelElem.innerHTML = level.asHTML();
+        let html = level.asHTML();
+        levelElem.innerHTML = html.html;
+        for (let event of html.events) {
+            levelElem.querySelector(event.selector).addEventListener(event.event, event.handler);
+        }
         levelsDiv.appendChild(levelElem);
     }
 }
