@@ -91,8 +91,16 @@
         function pointObj(o){
             point(o.x, o.y);
         }
+        function pointArr(o){
+            point(o[0], o[1]);
+        }
         function pointAll(arr){
-            arr.forEach(pointObj);
+            if (arr.length === 0) return;
+            if (arr[0] instanceof Array){
+                arr.forEach(pointArr);
+            } else {
+                arr.forEach(pointObj);
+            }
         }
     </script>
 
