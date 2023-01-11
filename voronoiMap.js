@@ -64,7 +64,17 @@ class StreetLevel {
                         this.cellStyle.lineWidth = parseInt(e.target.value);
                         drawCurrentMap();
                     }
-                }
+                },
+                {
+                    selector: `#line-width-${this.id}`,
+                    event: "mousedown",
+                    handler: (e) => {
+                        e.target.parentNode.draggable = false;
+                        document.addEventListener("mouseup", () => {
+                            e.target.parentNode.draggable = true;
+                        }, {once: true});
+                    }
+                },
             ],
             id: this.id
         };
