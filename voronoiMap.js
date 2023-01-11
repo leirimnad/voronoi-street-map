@@ -12,10 +12,17 @@ canvas.height = document.body.clientHeight;
 let ctx = canvas.getContext("2d");
 
 class StreetLevel {
+    static instances = [];
+
     constructor(nSites, cellStyle) {
         this.nSites = nSites;
         this.cellStyle = cellStyle;
         this.id = uuid();
+        StreetLevel.instances.push(this);
+    }
+
+    static byId(id) {
+        return StreetLevel.instances.find(level => level.id === id);
     }
 
     asHTML() {
@@ -52,10 +59,10 @@ class StreetLevel {
                     selector: `#line-width-${this.id}`,
                     event: "input",
                     handler: (e) => {
-                        // this.cellStyle.lineWidth = e.target.value;
-                        // this.draw();
                         let value = (e.target.value-e.target.min)/(e.target.max-e.target.min)*100;
                         e.target.style.background = 'linear-gradient(to right, var(--color-tr) 0%, var(--color-tr) ' + value + '%, #fff ' + value + '%, white 100%)'
+                        this.cellStyle.lineWidth = parseInt(e.target.value);
+                        drawCurrentMap();
                     }
                 }
             ],
@@ -71,6 +78,7 @@ class Cell {
         this.parent = parent;
         this.children = children;
         this.cellStyle = cellStyle;
+        this.borderingSides = [];
     }
 
     addChildren(children) {
@@ -132,7 +140,7 @@ class Cell {
                 n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0],
                 n2 = s[0] * e[1] - s[1] * e[0],
                 n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0]);
-            return [round((n1 * dp[0] - n2 * dc[0]) * n3, 4), round((n1 * dp[1] - n2 * dc[1]) * n3, 4)];
+            return [round((n1 * dp[0] - n2 * dc[0]) * n3, 8), round((n1 * dp[1] - n2 * dc[1]) * n3, 8)];
         };
         let outputList = subjectPolygon;
         cp1 = clipPolygon[clipPolygon.length-1];
@@ -160,8 +168,8 @@ class Cell {
         if (outputList.length < 3){
             console.warn("outputList.length < 3");
             console.log(outputList);
-            console.log("subjectPolygon", subjectPolygon);
-            console.log("clipPolygon", clipPolygon);
+            console.log("subjectPolygon", subjectPolygon, this);
+            console.log("clipPolygon", clipPolygon, clipCell);
         }
 
         let result = [];
@@ -171,8 +179,38 @@ class Cell {
         }
 
         this.polygon = result;
-        if (this.polygon[this.polygon.length - 1][0] !== this.polygon[0][0] || this.polygon[this.polygon.length - 1][1] !== this.polygon[0][1])
-            this.polygon.push(result[0]);
+        try {
+            if (this.polygon[this.polygon.length - 1][0] !== this.polygon[0][0] || this.polygon[this.polygon.length - 1][1] !== this.polygon[0][1])
+                this.polygon.push(result[0]);
+        } catch (e) {
+            console.log(e);
+            console.log(this.polygon);
+        }
+
+
+        this.borderingSides = this.calculateBorderingSides(this.parent);
+    }
+
+    calculateBorderingSides(cell, tolerance=0.0001) {
+        let result = [];
+        let subjectAngles = [];
+        for (let i = 0; i < this.polygon.length - 1; i++) {
+            subjectAngles.push(Math.atan((this.polygon[i][1] - this.polygon[i+1][1]) / (this.polygon[i][0] - this.polygon[i+1][0])));
+        }
+        let clipAngles = [];
+        for (let i = 0; i < cell.polygon.length - 1; i++) {
+            clipAngles.push(Math.atan((cell.polygon[i][1] - cell.polygon[i+1][1]) / (cell.polygon[i][0] - cell.polygon[i+1][0])));
+        }
+
+        for (let i = 0; i < this.polygon.length - 1; i++) {
+            for (let j = 0; j < cell.polygon.length - 1; j++) {
+                if (Math.abs(subjectAngles[i] - clipAngles[j]) < tolerance
+                    && isOnEdge(this.polygon[i], cell.polygon[j], cell.polygon[j+1])) {
+                    result.push(i);
+                }
+            }
+        }
+        return result;
     }
 }
 
@@ -208,12 +246,13 @@ let canvasCell = new Cell(
     new CellStyle("#FFFF", 0)
 )
 
-function generateFiniteMap(seedValue, levels){
+function generateFiniteMap(seedValue, levels) {
     console.log("Generating map with seed", seedValue.toString())
+
     let seededRandom = seededRand(seedValue);
 
     if (levels === undefined){
-        levels = generateLevels(seededRand(seededRandom()), 3, 5, 4, 10)
+        levels = generateLevels(seededRand(seededRandom()), 3, 4, 4, 6)
     }
 
     let accumulatedCells = [
@@ -244,6 +283,7 @@ function generateLevels(randomFunction, minN, maxN, minSites, maxSites) {
             )
         );
     }
+
     return levels;
 }
 
@@ -298,26 +338,42 @@ function drawFiniteMap(ctx, map) {
 }
 
 function drawCell(ctx, cell) {
+    if (cell.cellStyle.lineWidth === 0) return;
     ctx.lineWidth = cell.cellStyle.lineWidth;
     ctx.strokeStyle = cell.cellStyle.strokeColor;
 
     let polygon = cell.polygon;
     ctx.beginPath();
     ctx.moveTo(polygon[0][0], polygon[0][1]);
+    let borderingSides = [...cell.borderingSides];
     for (let i = 1; i < polygon.length; i++) {
-        ctx.lineTo(polygon[i][0], polygon[i][1]);
+        if (i-1 === borderingSides[0]){
+            borderingSides.shift();
+            ctx.moveTo(polygon[i][0], polygon[i][1]);
+        } else {
+            ctx.lineTo(polygon[i][0], polygon[i][1]);
+        }
     }
-    ctx.closePath();
     ctx.stroke();
 }
 
-function isOnEdge(p, p1, p2) {
-    let dx = p2.x - p1.x;
-    let dy = p2.y - p1.y;
+function isOnEdge(p, p1, p2, tolerance=0.0001) {
+    let px, py, p1x, p1y, p2x, p2y;
+    if (p instanceof Array) {
+        px = p[0]; py = p[1];
+        p1x = p1[0]; p1y = p1[1];
+        p2x = p2[0]; p2y = p2[1];
+    } else {
+        px = p.x; py = p.y;
+        p1x = p1.x; p1y = p1.y;
+        p2x = p2.x; p2y = p2.y;
+    }
+    let dx = p2x - p1x;
+    let dy = p2y - p1y;
     let d = Math.sqrt(dx * dx + dy * dy);
-    let d1 = Math.sqrt((p.x - p1.x) * (p.x - p1.x) + (p.y - p1.y) * (p.y - p1.y));
-    let d2 = Math.sqrt((p.x - p2.x) * (p.x - p2.x) + (p.y - p2.y) * (p.y - p2.y));
-    return (d1 + d2) === d;
+    let d1 = Math.sqrt((px - p1x) * (px - p1x) + (py - p1y) * (py - p1y));
+    let d2 = Math.sqrt((px - p2x) * (px - p2x) + (py - p2y) * (py - p2y));
+    return Math.abs(d - d1 - d2) < tolerance;
 }
 
 function round(num, places) {
@@ -330,6 +386,11 @@ let seedValue = Date.now();
 let map = generateFiniteMap(seedValue);
 console.log(map);
 drawFiniteMap(ctx, map);
+
+function drawCurrentMap(){
+    drawFiniteMap(ctx, map);
+}
+
 window.addEventListener("resize", function() {
     canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
@@ -343,6 +404,7 @@ const setSeedButton = document.querySelector('#set-seed-button');
 setSeedButton.addEventListener("click", function() {
     seedValue = seedInput.value;
     map = generateFiniteMap(seedValue);
+    console.log(map);
     drawFiniteMap(ctx, map);
 });
 
@@ -350,6 +412,7 @@ randomSeedButton.addEventListener("click", function() {
     seedValue = randomWord() + Math.floor(Math.random() * 1000).toString();
     seedInput.value = seedValue;
     map = generateFiniteMap(seedValue);
+    console.log(map);
     drawFiniteMap(ctx, map);
 });
 
