@@ -30,13 +30,13 @@
             <div class="setting">
                 <h3>Map type</h3>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mapType" id="mapType1" checked>
+                    <input class="form-check-input" type="radio" name="mapType" id="mapType1" disabled>
                     <label class="form-check-label" for="mapType1">
                         Infinite
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mapType" id="mapType2">
+                    <input class="form-check-input" type="radio" name="mapType" id="mapType2" checked>
                     <label class="form-check-label" for="mapType2">
                         Finite
                     </label>
@@ -47,7 +47,7 @@
                 <h3>Levels:</h3>
                 <ul id="levels-list" class="list-group">
                 </ul>
-                <button class="slist-li slist-add">
+                <button class="slist-li slist-add" id="add-level-button">
                     Add
                 </button>
             </div>
@@ -101,6 +101,18 @@
             } else {
                 arr.forEach(pointObj);
             }
+        }
+        let canvas = document.getElementById('voronoiMap');
+        function drawPolygon(arr, color="#000000"){
+            let ctx = canvas.getContext('2d');
+            ctx.strokeColor = color;
+            ctx.beginPath();
+            ctx.moveTo(arr[0][0], arr[0][1]);
+            for (let i = 1; i < arr.length; i++){
+                ctx.lineTo(arr[i][0], arr[i][1]);
+            }
+            ctx.closePath();
+            ctx.stroke();
         }
     </script>
 

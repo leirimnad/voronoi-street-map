@@ -275,7 +275,6 @@ class Cell {
             curr = dx1 * dy2 - dx2 * dy1;
             if (curr !== 0) {
                 if ((curr > 0 && pre < 0) || (curr < 0 && pre > 0)) {
-                    console.log("i = " + i);
                     return false;
                 }
                 else
@@ -284,6 +283,25 @@ class Cell {
         }
         return true;
     };
+
+    joinParallelSides(tolerance=1e-10) {
+        let result = [];
+        let arr = this.polygon.slice(0, -1);
+        const { length } = arr;
+        for (let i = 0; i < length; ++i) {
+            let dx1 = arr[(i + 1) % length][0] - arr[i][0];
+            let dx2 = arr[(i + 2) % length][0] - arr[(i + 1) % length][0];
+            let dy1 = arr[(i + 1) % length][1] - arr[i][1];
+            let dy2 = arr[(i + 2) % length][1] - arr[(i + 1) % length][1];
+            let d = dx1 * dy2 - dx2 * dy1;
+            if (Math.abs(d) > tolerance) {
+                result.push(arr[(i+1)%length]);
+            }
+        }
+        result.push(result[0]);
+        this.polygon = result;
+        this.borderingSides = this.calculateBorderingSides(this.parent);
+    }
 }
 
 class CellStyle {
@@ -324,7 +342,7 @@ function generateFiniteMap(seedValue, levels) {
     let seededRandom = seededRand(seedValue);
 
     if (levels === undefined){
-        levels = generateLevels(seededRand(seededRandom()), 3, 4, 4, 6)
+        levels = generateLevels(seededRand(seededRandom()), 3, 4, 2, 6)
     }
 
     let accumulatedCells = [
@@ -341,7 +359,7 @@ function generateFiniteMap(seedValue, levels) {
 
     updateLevelList(levelUl, levels);
 
-    return generatedLevels;
+    return {generatedLevels: generatedLevels, levels: levels};
 }
 
 function generateLevels(randomFunction, minN, maxN, minSites, maxSites) {
@@ -369,6 +387,13 @@ function generateLevel(level, cells, randomFunction){
 
         let generatedPolygons = [...voronoi.cellPolygons()];
         let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon, level.cellStyle, cell));
+
+        if (level.nSites === 2) {
+            for (let generatedCell of generatedCells) {
+                generatedCell.joinParallelSides();
+            }
+        }
+
         for (let generatedCell of generatedCells) {
             generatedCell.clip(cell);
         }
@@ -402,7 +427,7 @@ function generateSites(cell, nSites, randomFunction) {
 
 function drawFiniteMap(ctx, map) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let level of [...map].reverse()) {
+    for (let level of [...map.generatedLevels].reverse()) {
         for (let cell of level) {
             drawCell(ctx, cell);
         }
@@ -469,6 +494,7 @@ window.addEventListener("resize", function() {
 const seedInput = document.querySelector('#seed-input');
 const randomSeedButton = document.querySelector('#random-seed-button');
 const setSeedButton = document.querySelector('#set-seed-button');
+const addLevelButton = document.querySelector('#add-level-button');
 
 setSeedButton.addEventListener("click", function() {
     seedValue = seedInput.value;
@@ -485,6 +511,14 @@ randomSeedButton.addEventListener("click", function() {
     console.log(map);
     drawFiniteMap(ctx, map);
     seedInput.classList.remove("irrelevant");
+});
+
+addLevelButton.addEventListener("click", function() {
+    let level = new StreetLevel(2, new CellStyle("#000000", 1));
+    let newLevels = [...map.levels, level];
+    map = generateFiniteMap(seedValue, newLevels);
+    drawFiniteMap(ctx, map);
+    seedInput.classList.add("irrelevant");
 });
 
 function updateLevelList(levelsDiv, levels) {
@@ -504,8 +538,7 @@ function updateLevelList(levelsDiv, levels) {
 }
 
 function connectLevelListToMap(ul) {
-    ul.addEventListener("slistChanged", function(e) {
-        console.log("slistChanged", e);
+    ul.addEventListener("slistChanged", function() {
         seedValue = seedInput.value;
         let levels = parseLevelList(ul);
         map = generateFiniteMap(seedValue, levels);

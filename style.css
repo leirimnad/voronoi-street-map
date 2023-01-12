@@ -72,14 +72,16 @@ html, body {
 
 #slider-button {
     position: absolute;
-    border: 3px solid var(--primary-color);
+    /*border: 3px solid var(--primary-color);*/
+    border: none;
+    box-shadow: 0 0 5px 1px rgba(0, 0, 0, 0.5);
     color: var(--primary-color);
     font-weight: bold;
     height: 40px;
     text-align: center;
-    width: 30px;
+    width: 25px;
     border-radius: 20%;
-    right: 100%;
+    right: calc(100% - 3px);
     top: 50%;
     transform: translateX(40%) translateY(-50%);
     cursor: pointer;
@@ -95,6 +97,7 @@ html, body {
     border-radius: 20% 0 0 20%;
     width: 20px;
     opacity: 1;
+    right: 100%;
 }
 
 .pointCircle {
