@@ -178,3 +178,7 @@ input[type="range"].line-width-slider {
     transition: background 450ms ease-in;
     -webkit-appearance: none;
 }
+
+input[type="text"].irrelevant {
+    color: #0008;
+}

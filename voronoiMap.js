@@ -36,7 +36,7 @@ class StreetLevel {
                     <input type="number" min="1" max="10" id="level-sites-${this.id}" class="form-control" value="${this.nSites}"/>
                 </div>
                 site${(this.nSites > 1 ? "s" : "")}, 
-                <input class="line-width-slider" id="line-width-${this.id}"
+                <input class="line-width-slider" id="level-line-width-${this.id}"
                 style="
                     --color: ${this.cellStyle.strokeColor}; 
                     --color-tr: ${this.cellStyle.strokeColor}BB;
@@ -56,7 +56,7 @@ class StreetLevel {
                     }
                 },
                 {
-                    selector: `#line-width-${this.id}`,
+                    selector: `#level-line-width-${this.id}`,
                     event: "input",
                     handler: (e) => {
                         let value = (e.target.value-e.target.min)/(e.target.max-e.target.min)*100;
@@ -66,7 +66,7 @@ class StreetLevel {
                     }
                 },
                 {
-                    selector: `#line-width-${this.id}`,
+                    selector: `#level-line-width-${this.id}`,
                     event: "mousedown",
                     handler: (e) => {
                         e.target.parentNode.draggable = false;
@@ -339,7 +339,7 @@ function generateFiniteMap(seedValue, levels) {
         generatedLevels.push(accumulatedCells);
     }
 
-    updateLevelList(levels);
+    updateLevelList(levelUl, levels);
 
     return generatedLevels;
 }
@@ -450,6 +450,8 @@ function isOnEdge(p, p1, p2, tolerance=0.0001) {
 
 let seedValue = Date.now();
 
+const levelUl = document.querySelector('#levels-list');
+connectLevelListToMap(levelUl);
 let map = generateFiniteMap(seedValue);
 console.log(map);
 drawFiniteMap(ctx, map);
@@ -473,6 +475,7 @@ setSeedButton.addEventListener("click", function() {
     map = generateFiniteMap(seedValue);
     console.log(map);
     drawFiniteMap(ctx, map);
+    seedInput.classList.remove("irrelevant");
 });
 
 randomSeedButton.addEventListener("click", function() {
@@ -481,19 +484,45 @@ randomSeedButton.addEventListener("click", function() {
     map = generateFiniteMap(seedValue);
     console.log(map);
     drawFiniteMap(ctx, map);
+    seedInput.classList.remove("irrelevant");
 });
 
-function updateLevelList(levels) {
-    let levelsDiv = document.getElementById("levels-list");
+function updateLevelList(levelsDiv, levels) {
     levelsDiv.innerHTML = "";
     for (let level of levels) {
         let levelElem = document.createElement("li");
         levelElem.classList.add("list-group-item");
         let html = level.asHTML();
         levelElem.innerHTML = html.html;
+        levelElem.id = html.id;
         for (let event of html.events) {
             levelElem.querySelector(event.selector).addEventListener(event.event, event.handler);
         }
         levelsDiv.appendChild(levelElem);
     }
+    slist(levelsDiv);
+}
+
+function connectLevelListToMap(ul) {
+    ul.addEventListener("slistChanged", function(e) {
+        console.log("slistChanged", e);
+        seedValue = seedInput.value;
+        let levels = parseLevelList(ul);
+        map = generateFiniteMap(seedValue, levels);
+        drawFiniteMap(ctx, map);
+
+        seedInput.classList.add("irrelevant");
+    });
+}
+
+function parseLevelList(ul) {
+    let levels = [];
+    for (let li of ul.children) {
+        let id = li.id;
+        let nSites = document.getElementById("level-sites-" + id).value;
+        let lineWidth = document.getElementById("level-line-width-" + id).value;
+        let level = new StreetLevel(nSites, new CellStyle("#000000", lineWidth));
+        levels.push(level);
+    }
+    return levels;
 }
