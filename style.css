@@ -29,12 +29,13 @@ html, body {
     height: 100vh;
 }
 
-.sidebar_small {
+.sidebar.sidebar_small {
     width: 0;
     padding: 0;
+    box-shadow: none;
 }
 
-.sidebar_small * {
+.sidebar.sidebar_small * {
     opacity: 0;
     transition: 0.5s;
 }
@@ -128,6 +129,31 @@ html, body {
         height: 0;
         display: none;
     }
+}
+
+#levels-list {
+    overflow: auto;
+    max-height: 40vh;
+    border-radius: 0;
+}
+
+#levels-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+#levels-list::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+}
+
+/* Handle */
+#levels-list::-webkit-scrollbar-thumb {
+    background-color: #919191;
+}
+
+/* Handle on hover */
+#levels-list::-webkit-scrollbar-thumb:hover {
+    background-color: #6e6e6e;
 }
 
 input[type="range"] {

@@ -31,3 +31,8 @@
     color: black;
     cursor: pointer;
 }
+
+.slist-add:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
