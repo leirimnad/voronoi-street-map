@@ -341,8 +341,14 @@ function generateFiniteMap(seedValue, levels) {
 
     let seededRandom = seededRand(seedValue);
 
+    let randomFunctionSeeds = {
+        levelListGeneration: seededRandom(),
+        levelCellGeneration: seededRandom(),
+    };
+
     if (levels === undefined){
-        levels = generateLevels(seededRand(seededRandom()), 3, 4, 2, 6)
+        let seededRandomForLevelList = seededRand(randomFunctionSeeds.levelListGeneration);
+        levels = generateLevels(seededRandomForLevelList, 3, 4, 2, 6)
     }
 
     let accumulatedCells = [
@@ -351,9 +357,10 @@ function generateFiniteMap(seedValue, levels) {
 
     let generatedLevels = [];
 
+    let seededRandomForLevels = seededRand(randomFunctionSeeds.levelCellGeneration);
     for (let level of levels) {
         console.log("Generating level", level);
-        accumulatedCells = generateLevel(level, accumulatedCells, seededRand(seededRandom()));
+        accumulatedCells = generateLevel(level, accumulatedCells, seededRandomForLevels);
         generatedLevels.push(accumulatedCells);
     }
 
