@@ -43,6 +43,7 @@ class StreetLevel {
                     background: linear-gradient(to right, var(--color-tr) 0%, var(--color-tr) ${sliderPercent}%, #fff ${sliderPercent}%, white 100%)
                     "
                 min="${sliderMin}" max="${sliderMax}" type="range" value="${sliderValue}"/>
+                <button class="btn btn-sm btn-danger" id="level-delete-${this.id}">✕</button>
             `;
 
         return {
@@ -75,6 +76,20 @@ class StreetLevel {
                         }, {once: true});
                     }
                 },
+                {
+                    selector: `#level-delete-${this.id}`,
+                    event: "click",
+                    handler: () => {
+                        let newLevels = map.levels.filter(level => level.id !== this.id);
+                        map = generateFiniteMap(seedValue, newLevels);
+                        drawFiniteMap(ctx, map);
+                        if (newLevels.length < maxLevels) {
+                            addLevelButton.disabled = false;
+                            addLevelButton.title = null;
+                        }
+                        seedInput.classList.add("irrelevant");
+                    }
+                }
             ],
             id: this.id
         };
@@ -395,7 +410,7 @@ function generateLevel(level, cells, randomFunction){
         let generatedPolygons = [...voronoi.cellPolygons()];
         let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon, level.cellStyle, cell));
 
-        if (level.nSites === 2) {
+        if (level.nSites === 2 ) {
             for (let generatedCell of generatedCells) {
                 generatedCell.joinParallelSides();
             }
@@ -564,8 +579,8 @@ function parseLevelList(ul) {
     let levels = [];
     for (let li of ul.children) {
         let id = li.id;
-        let nSites = document.getElementById("level-sites-" + id).value;
-        let lineWidth = document.getElementById("level-line-width-" + id).value;
+        let nSites = parseInt(document.getElementById("level-sites-" + id).value);
+        let lineWidth = parseInt(document.getElementById("level-line-width-" + id).value);
         let level = new StreetLevel(nSites, new CellStyle("#000000", lineWidth));
         levels.push(level);
     }
