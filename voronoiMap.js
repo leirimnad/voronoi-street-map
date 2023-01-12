@@ -53,7 +53,9 @@ class StreetLevel {
                     selector: `#level-sites-${this.id}`,
                     event: "change",
                     handler: () => {
-
+                        this.nSites = parseInt(document.getElementById(`level-sites-${this.id}`).value);
+                        map = generateFiniteMap(seedValue, map.levels);
+                        drawFiniteMap(ctx, map);
                     }
                 },
                 {
