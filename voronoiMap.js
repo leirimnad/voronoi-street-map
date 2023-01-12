@@ -197,7 +197,12 @@ class Cell {
             console.log(this.polygon);
         }
 
-
+        if (!this.isConvex()) {
+            console.warn("Not convex");
+            console.log(subjectPolygon);
+            console.log(clipPolygon);
+            console.log(this.polygon);
+        }
         this.borderingSides = this.calculateBorderingSides(this.parent);
     }
 
@@ -222,6 +227,28 @@ class Cell {
         }
         return result;
     }
+
+    isConvex () {
+        let arr = this.polygon.slice(0, -1);
+        const { length } = arr;
+        let pre = 0, curr = 0;
+        for (let i = 0; i < length; ++i) {
+            let dx1 = arr[(i + 1) % length][0] - arr[i][0];
+            let dx2 = arr[(i + 2) % length][0] - arr[(i + 1) % length][0];
+            let dy1 = arr[(i + 1) % length][1] - arr[i][1];
+            let dy2 = arr[(i + 2) % length][1] - arr[(i + 1) % length][1];
+            curr = dx1 * dy2 - dx2 * dy1;
+            if (curr !== 0) {
+                if ((curr > 0 && pre < 0) || (curr < 0 && pre > 0)) {
+                    console.log("i = " + i);
+                    return false;
+                }
+                else
+                    pre = curr;
+            }
+        }
+        return true;
+    };
 }
 
 class CellStyle {
