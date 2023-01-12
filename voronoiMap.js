@@ -483,6 +483,7 @@ function isOnEdge(p, p1, p2, tolerance=0.0001) {
 let seedValue = Date.now();
 
 const levelUl = document.querySelector('#levels-list');
+let maxLevels = 7;
 connectLevelListToMap(levelUl);
 let map = generateFiniteMap(seedValue);
 console.log(map);
@@ -525,6 +526,10 @@ addLevelButton.addEventListener("click", function() {
     let newLevels = [...map.levels, level];
     map = generateFiniteMap(seedValue, newLevels);
     drawFiniteMap(ctx, map);
+    if (newLevels.length >= maxLevels) {
+        addLevelButton.disabled = true;
+        addLevelButton.title = `Maximum number of levels (${maxLevels}) reached`;
+    }
     seedInput.classList.add("irrelevant");
 });
 
