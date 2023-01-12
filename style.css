@@ -29,12 +29,13 @@ html, body {
     height: 100vh;
 }
 
-.sidebar_small {
+.sidebar.sidebar_small {
     width: 0;
     padding: 0;
+    box-shadow: none;
 }
 
-.sidebar_small * {
+.sidebar.sidebar_small * {
     opacity: 0;
     transition: 0.5s;
 }
@@ -72,14 +73,16 @@ html, body {
 
 #slider-button {
     position: absolute;
-    border: 3px solid var(--primary-color);
+    /*border: 3px solid var(--primary-color);*/
+    border: none;
+    box-shadow: 0 0 5px 1px rgba(0, 0, 0, 0.5);
     color: var(--primary-color);
     font-weight: bold;
     height: 40px;
     text-align: center;
-    width: 30px;
+    width: 25px;
     border-radius: 20%;
-    right: 100%;
+    right: calc(100% - 3px);
     top: 50%;
     transform: translateX(40%) translateY(-50%);
     cursor: pointer;
@@ -95,6 +98,7 @@ html, body {
     border-radius: 20% 0 0 20%;
     width: 20px;
     opacity: 1;
+    right: 100%;
 }
 
 .pointCircle {
@@ -125,4 +129,85 @@ html, body {
         height: 0;
         display: none;
     }
+}
+
+#levels-list {
+    overflow: auto;
+    max-height: 40vh;
+    border-radius: 0;
+}
+
+#levels-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+#levels-list::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+}
+
+/* Handle */
+#levels-list::-webkit-scrollbar-thumb {
+    background-color: #919191;
+}
+
+/* Handle on hover */
+#levels-list::-webkit-scrollbar-thumb:hover {
+    background-color: #6e6e6e;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.line-width-slider {
+    --range-height: 0.5rem;
+    --thumb-size: 0.9rem;
+    --color: #fff;
+    --color-tr: #fffb;
+}
+
+input[type="range"].line-width-slider::-webkit-slider-runnable-track {
+    height: var(--range-height);
+}
+
+/******** Firefox ********/
+input[type="range"].line-width-slider::-moz-range-track {
+    height: var(--range-height);
+}
+
+input[type="range"].line-width-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: calc(var(--range-height)/2 - var(--thumb-size)/2);
+    background-color: var(--color);
+    height: var(--thumb-size);
+    width: var(--thumb-size);
+    border-radius: 50%;
+    border: 2px solid white;
+    outline: 3px solid var(--color);
+}
+
+input[type="range"].line-width-slider::-moz-range-thumb {
+    border: 2px solid white;
+    outline: 3px solid var(--color);
+    border-radius: 50%;
+    background-color: var(--color);
+    height: var(--thumb-size);
+    width: var(--thumb-size);
+}
+
+input[type="range"].line-width-slider {
+    background: linear-gradient(to right, var(--color-tr) 0%, var(--color-tr) 50%, #fff 50%, #fff 100%);
+    border: solid 1px var(--color-tr);
+    outline: none;
+    transition: background 450ms ease-in;
+    -webkit-appearance: none;
+}
+
+input[type="text"].irrelevant {
+    color: #0008;
 }

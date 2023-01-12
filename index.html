@@ -22,21 +22,21 @@
                 <h3><label for="seed-input">Seed</label></h3>
                 <div class="input-group">
                     <input id="seed-input" class="form-control form-group input-group" type="text" placeholder='for example, "capybara"'>
-                    <button type="submit" class="input-group-append btn btn-secondary">Random</button>
-                    <button type="submit" class="input-group-append btn btn-dark">Set</button>
+                    <button type="submit" class="input-group-append btn btn-secondary" id="random-seed-button">Random</button>
+                    <button type="submit" class="input-group-append btn btn-dark" id="set-seed-button">Set</button>
                 </div>
             </div>
 
             <div class="setting">
                 <h3>Map type</h3>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mapType" id="mapType1" checked>
+                    <input class="form-check-input" type="radio" name="mapType" id="mapType1" disabled>
                     <label class="form-check-label" for="mapType1">
                         Infinite
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mapType" id="mapType2">
+                    <input class="form-check-input" type="radio" name="mapType" id="mapType2" checked>
                     <label class="form-check-label" for="mapType2">
                         Finite
                     </label>
@@ -45,14 +45,9 @@
 
             <div class="setting">
                 <h3>Levels:</h3>
-                <ul id="sortlist" class="list-group">
-                    <li class="list-group-item">First</li>
-                    <li class="list-group-item">Second</li>
-                    <li class="list-group-item">Third</li>
-                    <li class="list-group-item">Fourth</li>
-                    <li class="list-group-item">Fifth</li>
+                <ul id="levels-list" class="list-group">
                 </ul>
-                <button class="slist-li slist-add">
+                <button class="slist-li slist-add" id="add-level-button">
                     Add
                 </button>
             </div>
@@ -67,7 +62,7 @@
     </div>
 
     <div class="pointCircle" id="pointCircle"></div>
-    <script type="module" src="voronoiMap.js"></script>
+    <script type="module" src="voronoiMap.js" defer></script>
     <script>
         const sidebar = document.querySelector('.sidebar');
         const button = sidebar.querySelector('button');
@@ -79,7 +74,7 @@
     <script src="dndList.js"></script>
     <script>
         window.addEventListener("DOMContentLoaded", () => {
-            slist(document.getElementById("sortlist"));
+            slist(document.getElementById("levels-list"));
         });
 
         const pointCircleBase = document.querySelector('#pointCircle');
@@ -96,8 +91,28 @@
         function pointObj(o){
             point(o.x, o.y);
         }
+        function pointArr(o){
+            point(o[0], o[1]);
+        }
         function pointAll(arr){
-            arr.forEach(pointObj);
+            if (arr.length === 0) return;
+            if (arr[0] instanceof Array){
+                arr.forEach(pointArr);
+            } else {
+                arr.forEach(pointObj);
+            }
+        }
+        let canvas = document.getElementById('voronoiMap');
+        function drawPolygon(arr, color="#000000"){
+            let ctx = canvas.getContext('2d');
+            ctx.strokeColor = color;
+            ctx.beginPath();
+            ctx.moveTo(arr[0][0], arr[0][1]);
+            for (let i = 1; i < arr.length; i++){
+                ctx.lineTo(arr[i][0], arr[i][1]);
+            }
+            ctx.closePath();
+            ctx.stroke();
         }
     </script>
 

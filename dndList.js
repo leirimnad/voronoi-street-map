@@ -11,16 +11,16 @@ function slist (target) {
         i.draggable = true;
 
         // (B2) DRAG START - YELLOW HIGHLIGHT DROPZONES
-        i.ondragstart = (ev) => {
+        i.ondragstart = () => {
             current = i;
             for (let it of items) {
-                if (it != current) { it.classList.add("hint"); }
+                if (it !== current) { it.classList.add("hint"); }
             }
         };
 
         // (B3) DRAG ENTER - RED HIGHLIGHT DROPZONE
-        i.ondragenter = (ev) => {
-            if (i != current) { i.classList.add("active"); }
+        i.ondragenter = () => {
+            if (i !== current) { i.classList.add("active"); }
         };
 
         // (B4) DRAG LEAVE - REMOVE RED HIGHLIGHT
@@ -40,17 +40,18 @@ function slist (target) {
         // (B7) ON DROP - DO SOMETHING
         i.ondrop = (evt) => {
             evt.preventDefault();
-            if (i != current) {
+            if (i !== current) {
                 let currentpos = 0, droppedpos = 0;
                 for (let it=0; it<items.length; it++) {
-                    if (current == items[it]) { currentpos = it; }
-                    if (i == items[it]) { droppedpos = it; }
+                    if (current === items[it]) { currentpos = it; }
+                    if (i === items[it]) { droppedpos = it; }
                 }
                 if (currentpos < droppedpos) {
                     i.parentNode.insertBefore(current, i.nextSibling);
                 } else {
                     i.parentNode.insertBefore(current, i);
                 }
+                i.parentNode.dispatchEvent(new Event("slistChanged"));
             }
         };
     }
