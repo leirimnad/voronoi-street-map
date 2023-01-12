@@ -145,12 +145,47 @@ class Cell {
             return (cp2[0] - cp1[0]) * (p[1] - cp1[1]) > (cp2[1] - cp1[1]) * (p[0] - cp1[0]);
         };
         const intersection = function () {
-            const dc = [cp1[0] - cp2[0], cp1[1] - cp2[1]],
-                dp = [s[0] - e[0], s[1] - e[1]],
-                n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0],
-                n2 = s[0] * e[1] - s[1] * e[0],
-                n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0]);
-            return [round((n1 * dp[0] - n2 * dc[0]) * n3, 8), round((n1 * dp[1] - n2 * dc[1]) * n3, 8)];
+            // Line AB represented as a1x + b1y = c1
+            const a1 = cp2[1] - cp1[1];
+            const b1 = cp1[0] - cp2[0];
+            const c1 = a1*(cp1[0]) + b1*(cp1[1]);
+
+            // Line CD represented as a2x + b2y = c2
+            const a2 = e[1] - s[1];
+            const b2 = s[0] - e[0];
+            const c2 = a2*(s[0])+ b2*(s[1]);
+
+            const determinant = a1*b2 - a2*b1;
+
+            if (determinant === 0)
+            {
+                throw new Error("Lines are parallel");
+            } else {
+                let x = (b2*c1 - b1*c2)/determinant;
+                let y = (a1*c2 - a2*c1)/determinant;
+                let tolerance = 0.0001
+
+                if (Math.abs(x - cp1[0]) < tolerance)
+                    x = cp1[0];
+                else if (Math.abs(x - cp2[0]) < tolerance)
+                    x = cp2[0];
+                else if (Math.abs(x - s[0]) < tolerance)
+                    x = s[0];
+                else if (Math.abs(x - e[0]) < tolerance)
+                    x = e[0];
+
+
+                if (Math.abs(y - cp1[1]) < tolerance)
+                    y = cp1[1];
+                else if (Math.abs(y - cp2[1]) < tolerance)
+                    y = cp2[1];
+                else if (Math.abs(y - s[1]) < tolerance)
+                    y = s[1];
+                else if (Math.abs(y - e[1]) < tolerance)
+                    y = e[1];
+
+                return [x, y];
+            }
         };
         let outputList = subjectPolygon;
         cp1 = clipPolygon[clipPolygon.length-1];
@@ -412,11 +447,6 @@ function isOnEdge(p, p1, p2, tolerance=0.0001) {
     let d2 = Math.sqrt((px - p2x) * (px - p2x) + (py - p2y) * (py - p2y));
     return Math.abs(d - d1 - d2) < tolerance;
 }
-
-function round(num, places) {
-    return Math.round((num + Number.EPSILON) * Math.pow(10, places)) / Math.pow(10, places);
-}
-
 
 let seedValue = Date.now();
 
