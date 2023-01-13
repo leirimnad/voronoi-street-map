@@ -92,7 +92,7 @@ class StreetLevel {
                     event: "click",
                     handler: () => {
                         mapSettings.levelList = map.levels.filter(level => level.id !== this.id);
-                        if (mapSettings.levelList.length < appSettings.maxLevels) {
+                        if (mapSettings.levelList.length < appSettings.levelsLimitations.maxLevels) {
                             addLevelButton.disabled = false;
                             addLevelButton.title = null;
                         }
@@ -386,18 +386,6 @@ class CellStyle {
 }
 
 
-let canvasCell = new Cell(
-    null,
-    [
-        [0, 0],
-        [canvas.width, 0],
-        [canvas.width, canvas.height] ,
-        [0, canvas.height],
-        [0, 0]
-    ],
-    new CellStyle("#FFFF", 0)
-)
-
 function generateMap(mapSettings) {
     console.log("Generating map with settings", mapSettings)
 
@@ -411,14 +399,19 @@ function generateMap(mapSettings) {
         let seededRandomForLevelList = seededRand(randomFunctionSeeds.levelListGeneration);
         mapSettings.levelList = generateLevelList(seededRandomForLevelList, appSettings.randomLevelsLimitations)
     }
-
+    let canvasCell = getCanvasCell();
     let seededRandomForLevels = seededRand(randomFunctionSeeds.levelCellGeneration);
     let generatedLevels = generateLevels(mapSettings.levelList, canvasCell, seededRandomForLevels, (mapSettings.mapType === "finiteEven" ? 1 : 0));
 
     updateLevelList(levelUl, mapSettings.levelList);
     const result = {
         generatedLevels: generatedLevels,
-        levels: mapSettings.levelList
+        levels: mapSettings.levelList,
+        width:
+            canvasCell.polygon.map((point) => point[0]).reduce((a, b) => Math.max(a, b))
+            - canvasCell.polygon.map((point) => point[0]).reduce((a, b) => Math.min(a, b)),
+        height: canvasCell.polygon.map((point) => point[1]).reduce((a, b) => Math.max(a, b))
+            - canvasCell.polygon.map((point) => point[1]).reduce((a, b) => Math.min(a, b)),
     }
     console.log("Map generation complete:", result);
     return result;
@@ -589,7 +582,6 @@ const mapSettings = {
     mapType: "finiteEven",
 }
 const appSettings = {
-    maxLevels: 7,
     randomLevelsLimitations: {
         minN: 4,
         maxN: 5,
@@ -597,15 +589,29 @@ const appSettings = {
         maxSites: 9
     },
     levelsLimitations: {
-        minN: 0,
-        maxN: 10,
+        minLevels: 0,
+        maxLevels: 7,
         minSites: 1,
         maxSites: 10,
     },
     cellStyle: {
-        minLineWidth: 1,
+        minLineWidth: 0,
         maxLineWidth: 10,
     }
+}
+
+function getCanvasCell(){
+    return new Cell(
+        null,
+        [
+            [0, 0],
+            [canvas.width, 0],
+            [canvas.width, canvas.height] ,
+            [0, canvas.height],
+            [0, 0]
+        ],
+        new CellStyle("#FFFF", 0)
+    )
 }
 
 const levelUl = document.querySelector('#levels-list');
@@ -620,7 +626,7 @@ function drawCurrentMap(){
 window.addEventListener("resize", function() {
     canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
-    drawFiniteMap(ctx, map);
+    updateMap();
 });
 
 const seedInput = document.querySelector('#seed-input');
@@ -647,9 +653,9 @@ randomSeedButton.addEventListener("click", function() {
 addLevelButton.addEventListener("click", function() {
     let level = new StreetLevel(2, new CellStyle("#000000", 1));
     mapSettings.levelList = [...map.levels, level];
-    if (mapSettings.levelList.length >= appSettings.maxLevels) {
+    if (mapSettings.levelList.length >= appSettings.levelsLimitations.maxLevels) {
         addLevelButton.disabled = true;
-        addLevelButton.title = `Maximum number of levels (${appSettings.maxLevels}) reached`;
+        addLevelButton.title = `Maximum number of levels (${appSettings.levelsLimitations.maxLevels}) reached`;
     }
     updateMap();
     seedInput.classList.add("irrelevant");
