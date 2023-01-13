@@ -37,7 +37,7 @@ function sfc32(a, b, c, d) {
     }
 }
 
-import words from "./wordlist.json" assert { type: 'json' };
+import words from "../resources/wordlist.json" assert { type: 'json' };
 
 function randomWord(){
     return words[Math.floor(Math.random() * words.length)];

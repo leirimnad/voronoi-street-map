@@ -492,6 +492,7 @@ function generateCells(cell, n, randomFunction, level) {
     let voronoi = delaunay.voronoi(cell.getBoundingBox());
 
     let generatedPolygons = [...voronoi.cellPolygons()];
+
     let generatedCells = generatedPolygons.map((polygon, i) => new Cell(sites[i], polygon, level.cellStyle, cell));
 
     if (n === 2 ) {
