@@ -44,7 +44,7 @@ export class StreetLevel {
                 max="${this.appSettings.cellStyle.maxLineWidth}" 
                 type="range" 
                 value="${sliderValue}"/>
-                <button class="btn btn-sm btn-danger" id="level-delete-${this.id}">✕</button>
+                <button class="btn btn-sm btn-danger ms-2" id="level-delete-${this.id}">✕</button>
             `;
 
         return {

@@ -156,11 +156,17 @@ html, body {
     background-color: #6e6e6e;
 }
 
-input[type="range"] {
+#levels-list input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     background: transparent;
     cursor: pointer;
+    width: 125px;
+    transition: width 1s cubic-bezier(0.61, 0.01, 0.5, 0.39);
+}
+
+#levels-list.collapsed input[type="range"]{
+    width: 0;
 }
 
 .line-width-slider {

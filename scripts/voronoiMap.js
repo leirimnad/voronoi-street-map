@@ -22,8 +22,8 @@ const appSettings = {
     randomLevelsLimitations: {
         minN: 4,
         maxN: 5,
-        minSites: 4,
-        maxSites: 9
+        minSites: 5,
+        maxSites: 8
     },
     levelsLimitations: {
         minLevels: 0,
