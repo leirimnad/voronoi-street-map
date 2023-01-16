@@ -1,5 +1,6 @@
 function drawFiniteMap(ctx, map) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     for (let level of [...map.generatedLevels].reverse()) {
         for (let cell of level) {
             drawCell(ctx, cell);
